@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/eclipse/paho.golang/autopaho"
@@ -36,12 +37,21 @@ func (c *Client) OnPublish(p *paho.Publish) {
 // OnConnectionUp handles when we first connect to the MQTT broker. It will populate
 // the subscriptions with the default subscription(s).
 func (c *Client) OnConnectionUp(cm *autopaho.ConnectionManager, _ *paho.Connack) {
-	_, err := cm.Subscribe(context.Background(), &paho.Subscribe{
-		Subscriptions: map[string]paho.SubscribeOptions{
-			announcementTopicPrefix: {QoS: 0},
-		},
-	})
+
+	subs := map[string]paho.SubscribeOptions{}
+
+	// When we reconnect we need to subscribe to all the gateway data endpoints again
+	for k := range c.gateways {
+		sampleTopic := fmt.Sprintf(sampleTopicFmt, k)
+		subs[sampleTopic] = paho.SubscribeOptions{QoS: 1}
+	}
+
+	// then we add the usual suspects
+	subs[announcementTopicPrefix] = paho.SubscribeOptions{QoS: 0}
+
+	sr, err := cm.Subscribe(context.Background(), &paho.Subscribe{Subscriptions: subs})
 	if err != nil {
-		log.Printf("failed to subscribe to announcement topic")
+		log.Printf("subscription failure: %v", err)
+		log.Printf("  sr: %+v", sr)
 	}
 }
