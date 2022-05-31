@@ -10,6 +10,7 @@ import (
 	gwp "go.buf.build/protocolbuffers/go/autro/gwp/v1"
 )
 
+// HandleAnnounce handles incoming (GW) announcements.
 func (c *Client) HandleAnnounce(packet *gwp.Packet, ann *gwp.Announcement) {
 	gwAddr, err := addr.ParseGWAddr(packet.From)
 	if err != nil {
